@@ -1,7 +1,8 @@
 import React from 'react';
+import ResumeUploadPage from './ResumeUploadPage';
 
 const ResumeAnalysisPage = () => {
-  return <div>Resume Analysis</div>;
+  return <ResumeUploadPage />;
 };
 
 export default ResumeAnalysisPage;
