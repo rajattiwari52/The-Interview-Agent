@@ -22,8 +22,8 @@ const Stepper = ({ currentStep = 1, steps = ['Upload', 'Analyze', 'Results'] }) 
                       : isActive
                       ? currentStep === 1
                         ? 'bg-blue-600 text-white font-bold'
-                        : 'border-2 border-blue-600 text-blue-600 bg-white font-bold'
-                      : 'border border-gray-200 text-gray-400 bg-white'
+                        : 'border-2 border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-900 font-bold'
+                      : 'border border-gray-200 dark:border-slate-800 text-gray-400 dark:text-slate-500 bg-white dark:bg-slate-900'
                   }`}
                 >
                   {isCompleted ? (
@@ -35,8 +35,8 @@ const Stepper = ({ currentStep = 1, steps = ['Upload', 'Analyze', 'Results'] }) 
                 <span
                   className={`mt-1.5 text-[11px] font-geist transition-colors ${
                     isActive
-                      ? 'text-blue-600 font-bold'
-                      : 'text-gray-500'
+                      ? 'text-blue-600 dark:text-blue-400 font-bold'
+                      : 'text-gray-500 dark:text-slate-400'
                   }`}
                 >
                   {step}
@@ -47,7 +47,7 @@ const Stepper = ({ currentStep = 1, steps = ['Upload', 'Analyze', 'Results'] }) 
               {!isLast && (
                 <div
                   className={`flex-1 h-[1px] mx-3 mb-5 transition-colors ${
-                    isCompleted ? 'bg-blue-600' : 'bg-gray-200'
+                    isCompleted ? 'bg-blue-600 dark:bg-blue-500' : 'bg-gray-200 dark:bg-slate-800'
                   }`}
                 />
               )}

@@ -41,31 +41,31 @@ const AnalysisProgressCard = ({ fileName, fileSize, onCancel, onComplete }) => {
   }, [onComplete]);
 
   return (
-    <div className="bg-white border border-gray-200/80 rounded-2xl p-6 md:p-7 max-w-xl w-full mx-auto shadow-xs mt-1">
-      <h1 className="text-xl md:text-2xl font-bold text-gray-900 text-center mb-4 tracking-tight font-sans">
+    <div className="bg-white dark:bg-[#0B0F19]/90 border border-gray-200/80 dark:border-slate-800/80 rounded-2xl p-6 md:p-7 max-w-xl w-full mx-auto shadow-sm dark:shadow-2xl mt-1 backdrop-blur-md transition-all text-gray-900 dark:text-white">
+      <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white text-center mb-4 tracking-tight font-sans">
         Analyzing your resume...
       </h1>
 
       {/* File Badge */}
       {fileName && (
-        <div className="bg-blue-50/50 border border-blue-100/80 rounded-xl p-3 flex items-center justify-between mb-4">
+        <div className="bg-blue-50/50 dark:bg-slate-900/60 border border-blue-100/80 dark:border-slate-800 rounded-xl p-3 flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3 min-w-0 flex-1 mr-2">
-            <FileText className="w-4.5 h-4.5 text-blue-600 shrink-0" />
+            <FileText className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400 shrink-0" />
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-geist font-medium text-gray-900 truncate" title={fileName}>
+              <p className="text-xs font-geist font-medium text-gray-900 dark:text-white truncate" title={fileName}>
                 {fileName}
               </p>
               {fileSize && (
-                <p className="text-[11px] font-geist text-gray-500">{fileSize}</p>
+                <p className="text-[11px] font-geist text-gray-500 dark:text-slate-400">{fileSize}</p>
               )}
             </div>
           </div>
-          <CheckCircle2 className="w-4.5 h-4.5 text-emerald-500 fill-emerald-100 shrink-0" />
+          <CheckCircle2 className="w-4.5 h-4.5 text-emerald-500 dark:text-emerald-400 fill-emerald-100 dark:fill-emerald-950 shrink-0" />
         </div>
       )}
 
       {/* Sequential Tasks Checklist */}
-      <div className="border border-gray-200/80 rounded-xl p-4 bg-gray-50/40 space-y-3 mb-4 font-geist text-xs">
+      <div className="border border-gray-200/80 dark:border-slate-800 rounded-xl p-4 bg-gray-50/40 dark:bg-slate-900/40 space-y-3 mb-4 font-geist text-xs">
         {ANALYSIS_TASKS.map((taskLabel, idx) => {
           const isCompleted = idx < activeTaskIndex;
           const isActive = idx === activeTaskIndex;
@@ -75,18 +75,18 @@ const AnalysisProgressCard = ({ fileName, fileSize, onCancel, onComplete }) => {
               key={taskLabel}
               className={`flex items-center space-x-3 transition-colors ${
                 isCompleted
-                  ? 'text-gray-800'
+                  ? 'text-gray-800 dark:text-gray-200'
                   : isActive
-                  ? 'text-blue-600 font-medium'
-                  : 'text-gray-400'
+                  ? 'text-blue-600 dark:text-blue-400 font-medium'
+                  : 'text-gray-400 dark:text-slate-500'
               }`}
             >
               {isCompleted ? (
-                <Check className="w-4 h-4 text-emerald-600 stroke-[2.5]" />
+                <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 stroke-[2.5]" />
               ) : isActive ? (
-                <Loader2 className="w-4 h-4 animate-spin text-blue-600 stroke-[2.5]" />
+                <Loader2 className="w-4 h-4 animate-spin text-blue-600 dark:text-blue-400 stroke-[2.5]" />
               ) : (
-                <Circle className="w-4 h-4 text-gray-300" />
+                <Circle className="w-4 h-4 text-gray-300 dark:text-slate-700" />
               )}
               <span>{taskLabel}</span>
             </div>
@@ -97,12 +97,12 @@ const AnalysisProgressCard = ({ fileName, fileSize, onCancel, onComplete }) => {
       {/* Progress Bar */}
       <div className="mb-5 font-geist">
         <div className="flex items-center justify-between text-xs mb-1.5">
-          <span className="font-semibold text-gray-700">Overall Progress</span>
-          <span className="font-bold text-blue-600">{progress}%</span>
+          <span className="font-semibold text-gray-700 dark:text-slate-300">Overall Progress</span>
+          <span className="font-bold text-blue-600 dark:text-blue-400">{progress}%</span>
         </div>
-        <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div className="w-full h-2 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
           <div
-            className="h-full bg-blue-600 rounded-full transition-all duration-200"
+            className="h-full bg-blue-600 dark:bg-blue-500 rounded-full transition-all duration-200"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -113,7 +113,7 @@ const AnalysisProgressCard = ({ fileName, fileSize, onCancel, onComplete }) => {
         <button
           type="button"
           onClick={onCancel}
-          className="border border-gray-300 text-gray-700 hover:bg-gray-50 px-5 py-2.5 rounded-lg text-xs font-geist font-medium transition-colors shadow-2xs"
+          className="border border-gray-300 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800/80 px-5 py-2.5 rounded-xl text-xs font-geist font-medium transition-colors shadow-2xs"
         >
           Cancel Analysis
         </button>
