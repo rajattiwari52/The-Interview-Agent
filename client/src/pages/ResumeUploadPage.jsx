@@ -13,6 +13,7 @@ const ResumeUploadPage = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [analysisResult, setAnalysisResult] = useState(null);
 
   const handleFileSelect = (fileData) => {
     setSelectedFile(fileData);
@@ -20,6 +21,7 @@ const ResumeUploadPage = () => {
 
   const handleRemoveFile = () => {
     setSelectedFile(null);
+    setAnalysisResult(null);
   };
 
   const handleStartAnalysis = () => {
@@ -27,7 +29,11 @@ const ResumeUploadPage = () => {
     setCurrentStep(2);
   };
 
-  const handleAnalysisComplete = () => {
+  const handleAnalysisComplete = (apiData) => {
+    const dataToSet = apiData || localStorage.getItem('resumeAnalysis');
+    if (dataToSet) {
+      setAnalysisResult(dataToSet);
+    }
     setCurrentStep(3);
   };
 
@@ -35,7 +41,7 @@ const ResumeUploadPage = () => {
     <div className="min-h-screen flex flex-col justify-between bg-[#F8FAFC] dark:bg-[#060911] text-gray-900 dark:text-gray-100 transition-colors duration-300 overflow-y-auto">
       <Navbar />
 
-      <main className="flex-1 flex flex-col items-center justify-center px-4 py-6 md:py-8 overflow-y-auto">
+      <main className="flex-1 flex flex-col items-center justify-center px-4 pt-20 pb-8 md:pt-24 md:pb-10 overflow-y-auto">
         <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center">
           {/* Centered Stepper */}
           <div className="w-full max-w-xl mx-auto mb-3">
@@ -84,6 +90,7 @@ const ResumeUploadPage = () => {
           {currentStep === 2 && (
             <div className="w-full max-w-xl mx-auto">
               <AnalysisProgressCard
+                fileObj={selectedFile?.fileObj}
                 fileName={selectedFile?.name}
                 fileSize={selectedFile?.size}
                 onCancel={() => setCurrentStep(1)}
@@ -96,6 +103,7 @@ const ResumeUploadPage = () => {
           {currentStep === 3 && (
             <div className="w-full max-w-5xl mx-auto">
               <ResumeResultView
+                evaluation={analysisResult}
                 onRetry={() => setCurrentStep(1)}
                 onStartInterview={() => navigate('/interview/preparation')}
               />

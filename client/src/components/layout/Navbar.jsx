@@ -5,7 +5,7 @@ import ThemeToggle from '../common/ThemeToggle';
 
 const Navbar = () => {
   return (
-    <header className="w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-gray-200/80 dark:border-slate-800 py-3 px-6 md:px-12 flex items-center justify-between shrink-0 sticky top-0 z-50 transition-colors duration-300">
+    <header className="fixed top-0 left-0 right-0 z-50 w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-gray-200/80 dark:border-slate-800 py-3 px-6 md:px-12 flex items-center justify-between shrink-0 transition-colors duration-300 shadow-2xs">
       <Link to="/" className="hover:opacity-90 transition-opacity">
         <Logo />
       </Link>

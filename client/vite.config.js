@@ -11,4 +11,24 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    hmr: {
+      protocol: 'ws',
+      host: 'localhost',
+    },
+    proxy: {
+      '/resume': {
+        target: 'https://abstalk-1.onrender.com',
+        changeOrigin: true,
+        secure: true,
+        ws: false,
+      },
+      '/interview': {
+        target: 'https://abstalk-1.onrender.com',
+        changeOrigin: true,
+        secure: true,
+        ws: false,
+      },
+    },
+  },
 });

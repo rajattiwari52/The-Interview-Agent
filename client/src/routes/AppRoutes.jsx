@@ -8,6 +8,8 @@ import ResumeResultPage from '../pages/ResumeResultPage';
 import InterviewPreparationPage from '../pages/InterviewPreparationPage';
 import LiveInterviewPage from '../pages/LiveInterviewPage';
 import InterviewReportPage from '../pages/InterviewReportPage';
+import InterviewDisqualifiedPage from '../pages/InterviewDisqualifiedPage';
+import InterviewIncompletePage from '../pages/InterviewIncompletePage';
 
 const AppRoutes = () => {
   return (
@@ -19,6 +21,8 @@ const AppRoutes = () => {
       <Route path="/interview/preparation" element={<InterviewPreparationPage />} />
       <Route path="/interview/live" element={<LiveInterviewPage />} />
       <Route path="/interview/report" element={<InterviewReportPage />} />
+      <Route path="/interview/disqualified" element={<InterviewDisqualifiedPage />} />
+      <Route path="/interview/incomplete" element={<InterviewIncompletePage />} />
     </Routes>
   );
 };
