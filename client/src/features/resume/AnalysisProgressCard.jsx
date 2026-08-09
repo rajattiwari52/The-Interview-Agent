@@ -1,29 +1,53 @@
-import React, { useState, useEffect } from 'react';
-import { FileText, CheckCircle2, Check, Loader2, Circle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { FileText, CheckCircle2, Check, Loader2, Circle, AlertCircle } from 'lucide-react';
+import resumeService from '../../services/resumeService';
 
 const ANALYSIS_TASKS = [
-  'Extracting experience',
-  'Identifying technologies',
-  'Analyzing project complexity',
-  'Preparing interview environment',
+  'Extracting experience & skills',
+  'Identifying technologies & frameworks',
+  'Analyzing project complexity & ATS match',
+  'Preparing adaptive interview environment',
 ];
 
-const AnalysisProgressCard = ({ fileName, fileSize, onCancel, onComplete }) => {
+const AnalysisProgressCard = ({ fileObj, fileName, fileSize, onCancel, onComplete }) => {
   const [activeTaskIndex, setActiveTaskIndex] = useState(0);
   const [progress, setProgress] = useState(10);
+  const [errorMsg, setErrorMsg] = useState(null);
+  const apiResultRef = useRef(null);
 
   useEffect(() => {
+    let isMounted = true;
+
+    if (fileObj) {
+      resumeService.analyzeResume(fileObj)
+        .then((res) => {
+          if (isMounted && res) {
+            apiResultRef.current = res;
+            const resString = typeof res === 'string' ? res : JSON.stringify(res);
+            localStorage.setItem('resumeAnalysis', resString);
+          }
+        })
+        .catch((err) => {
+          console.error('Backend API /resume/analyze error:', err);
+          if (isMounted) {
+            setErrorMsg('Could not connect to backend server. Please check your network connection.');
+          }
+        });
+    }
+
     const timer = setInterval(() => {
       setProgress((prev) => {
-        const nextProgress = prev + 3;
+        const nextProgress = prev + 2;
 
-        // Advance active task index based on progress threshold
         if (nextProgress >= 100) {
           clearInterval(timer);
-          setActiveTaskIndex(4); // All tasks complete
+          setActiveTaskIndex(4);
           setTimeout(() => {
-            if (onComplete) onComplete();
-          }, 800);
+            if (onComplete) {
+              const savedData = apiResultRef.current || localStorage.getItem('resumeAnalysis');
+              onComplete(savedData);
+            }
+          }, 400);
           return 100;
         } else if (nextProgress >= 75) {
           setActiveTaskIndex(3);
@@ -35,20 +59,31 @@ const AnalysisProgressCard = ({ fileName, fileSize, onCancel, onComplete }) => {
 
         return nextProgress;
       });
-    }, 200);
+    }, 120);
 
-    return () => clearInterval(timer);
-  }, [onComplete]);
+    return () => {
+      isMounted = false;
+      clearInterval(timer);
+    };
+  }, [fileObj, onComplete]);
 
   return (
-    <div className="bg-white dark:bg-[#0B0F19]/90 border border-gray-200/80 dark:border-slate-800/80 rounded-2xl p-6 md:p-7 max-w-xl w-full mx-auto shadow-sm dark:shadow-2xl mt-1 backdrop-blur-md transition-all text-gray-900 dark:text-white">
-      <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white text-center mb-4 tracking-tight font-sans">
+    <div className="bg-white dark:bg-[#0B0F19]/90 border border-gray-200/80 dark:border-slate-800/80 rounded-2xl p-6 md:p-7 max-w-xl w-full mx-auto shadow-sm dark:shadow-2xl mt-1 backdrop-blur-md transition-all text-gray-900 dark:text-white font-geist space-y-4">
+      <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white text-center tracking-tight font-sans">
         Analyzing your resume...
       </h1>
 
+      {/* Error Alert if API Fails */}
+      {errorMsg && (
+        <div className="bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900/60 rounded-xl p-3.5 text-xs text-amber-800 dark:text-amber-300 flex items-start space-x-2.5">
+          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          <p className="leading-snug">{errorMsg}</p>
+        </div>
+      )}
+
       {/* File Badge */}
       {fileName && (
-        <div className="bg-blue-50/50 dark:bg-slate-900/60 border border-blue-100/80 dark:border-slate-800 rounded-xl p-3 flex items-center justify-between mb-4">
+        <div className="bg-blue-50/50 dark:bg-slate-900/60 border border-blue-100/80 dark:border-slate-800 rounded-xl p-3 flex items-center justify-between">
           <div className="flex items-center space-x-3 min-w-0 flex-1 mr-2">
             <FileText className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400 shrink-0" />
             <div className="min-w-0 flex-1">
@@ -65,7 +100,7 @@ const AnalysisProgressCard = ({ fileName, fileSize, onCancel, onComplete }) => {
       )}
 
       {/* Sequential Tasks Checklist */}
-      <div className="border border-gray-200/80 dark:border-slate-800 rounded-xl p-4 bg-gray-50/40 dark:bg-slate-900/40 space-y-3 mb-4 font-geist text-xs">
+      <div className="border border-gray-200/80 dark:border-slate-800 rounded-xl p-4 bg-gray-50/40 dark:bg-slate-900/40 space-y-3 font-geist text-xs">
         {ANALYSIS_TASKS.map((taskLabel, idx) => {
           const isCompleted = idx < activeTaskIndex;
           const isActive = idx === activeTaskIndex;
@@ -95,7 +130,7 @@ const AnalysisProgressCard = ({ fileName, fileSize, onCancel, onComplete }) => {
       </div>
 
       {/* Progress Bar */}
-      <div className="mb-5 font-geist">
+      <div className="font-geist">
         <div className="flex items-center justify-between text-xs mb-1.5">
           <span className="font-semibold text-gray-700 dark:text-slate-300">Overall Progress</span>
           <span className="font-bold text-blue-600 dark:text-blue-400">{progress}%</span>
@@ -109,11 +144,11 @@ const AnalysisProgressCard = ({ fileName, fileSize, onCancel, onComplete }) => {
       </div>
 
       {/* Cancel Button */}
-      <div className="text-center">
+      <div className="text-center pt-2">
         <button
           type="button"
           onClick={onCancel}
-          className="border border-gray-300 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800/80 px-5 py-2.5 rounded-xl text-xs font-geist font-medium transition-colors shadow-2xs"
+          className="border border-gray-300 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800/80 px-5 py-2 rounded-xl text-xs font-geist font-medium transition-colors shadow-2xs"
         >
           Cancel Analysis
         </button>

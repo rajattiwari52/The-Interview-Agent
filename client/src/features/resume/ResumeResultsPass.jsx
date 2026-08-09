@@ -7,22 +7,13 @@ const ResumeResultsPass = ({ evaluation, onStartInterview }) => {
   const navigate = useNavigate();
 
   const analytics = calculateRealAnalytics(evaluation) || {
-    totalScore: 91,
-    atsMatch: 94,
-    skillsMatch: 92,
-    experienceMatch: 89,
-    keywordMatch: 91,
-    strengths: [
-      'Strong technical skills representation and formatting',
-      'Well-structured, chronological layout highly preferred by ATS',
-      'Highly relevant projects with clear, professional descriptions',
-      'Strong industry keywords present throughout experience',
-    ],
-    weakAreas: [
-      'Add more measurable achievements to recent roles',
-      'Tailor keywords slightly more for specific job descriptions',
-      'Strengthen a few older project descriptions with metrics',
-    ],
+    totalScore: 0,
+    atsMatch: 0,
+    skillsMatch: 0,
+    experienceMatch: 0,
+    keywordMatch: 0,
+    strengths: [],
+    weakAreas: [],
   };
 
   return (
@@ -38,7 +29,7 @@ const ResumeResultsPass = ({ evaluation, onStartInterview }) => {
             🎉 Your Resume Looks Great!
           </h1>
           <p className="text-[11px] text-gray-500 dark:text-slate-400">
-            Your resume is ready for job applications.
+            Your resume is ready for technical interviews.
           </p>
         </div>
 
@@ -101,12 +92,16 @@ const ResumeResultsPass = ({ evaluation, onStartInterview }) => {
             <span>What You're Doing Well</span>
           </h2>
           <ul className="space-y-1.5">
-            {analytics.strengths.map((item, idx) => (
-              <li key={idx} className="flex items-center space-x-2 text-[11px] text-gray-700 dark:text-slate-300">
-                <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 stroke-[2.5] shrink-0" />
-                <span>{item}</span>
-              </li>
-            ))}
+            {analytics.strengths.length > 0 ? (
+              analytics.strengths.map((item, idx) => (
+                <li key={idx} className="flex items-center space-x-2 text-[11px] text-gray-700 dark:text-slate-300">
+                  <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 stroke-[2.5] shrink-0" />
+                  <span>{item}</span>
+                </li>
+              ))
+            ) : (
+              <li className="text-[11px] text-gray-400 italic">No specific strengths parsed</li>
+            )}
           </ul>
         </div>
 
@@ -114,15 +109,19 @@ const ResumeResultsPass = ({ evaluation, onStartInterview }) => {
         <div className="bg-white dark:bg-[#0B0F19]/90 border border-gray-200/80 dark:border-slate-800/80 rounded-xl p-4 shadow-2xs backdrop-blur-md">
           <h2 className="text-xs font-bold text-gray-900 dark:text-white font-sans flex items-center gap-1.5 mb-2.5">
             <Sparkles className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
-            <span>Minor Improvements</span>
+            <span>Areas to Improve</span>
           </h2>
           <ul className="space-y-1.5">
-            {analytics.weakAreas.map((item, idx) => (
-              <li key={idx} className="flex items-center space-x-2 text-[11px] text-gray-700 dark:text-slate-300">
-                <ArrowRight className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 shrink-0" />
-                <span>{item}</span>
-              </li>
-            ))}
+            {analytics.weakAreas.length > 0 ? (
+              analytics.weakAreas.map((item, idx) => (
+                <li key={idx} className="flex items-center space-x-2 text-[11px] text-gray-700 dark:text-slate-300">
+                  <ArrowRight className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 shrink-0" />
+                  <span>{item}</span>
+                </li>
+              ))
+            ) : (
+              <li className="text-[11px] text-gray-400 italic">No critical weak areas identified</li>
+            )}
           </ul>
         </div>
       </div>

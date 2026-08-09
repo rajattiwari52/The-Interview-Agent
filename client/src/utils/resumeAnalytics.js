@@ -1,56 +1,119 @@
 /**
- * Calculate dynamic real analytics percentages and metrics from backend API evaluation payload.
+ * Parse raw text response or JSON payload returned by POST /resume/analyze
  */
-export const calculateRealAnalytics = (evaluation) => {
-  if (!evaluation) return null;
+export const calculateRealAnalytics = (evaluationInput) => {
+  const inputToUse = evaluationInput || (typeof window !== 'undefined' ? localStorage.getItem('resumeAnalysis') : null);
 
-  const criteria = evaluation.criteria || {};
+  if (!inputToUse) return null;
 
-  // Technical skill match percentage
-  const techSkill = criteria.technicalSkillRelevance;
-  const skillsMatch = techSkill && techSkill.maxScore > 0
-    ? Math.round((techSkill.score / techSkill.maxScore) * 100)
-    : 80;
+  let rawText = '';
+  let evaluation = {};
 
-  // Project depth & practical experience match percentage
-  const proj = criteria.projectDepth;
-  const exp = criteria.practicalExperience;
-  const projPct = proj && proj.maxScore > 0 ? (proj.score / proj.maxScore) * 100 : 80;
-  const expPct = exp && exp.maxScore > 0 ? (exp.score / exp.maxScore) * 100 : 75;
-  const experienceMatch = Math.round((projPct + expPct) / 2);
+  if (typeof inputToUse === 'string') {
+    try {
+      const parsed = JSON.parse(inputToUse);
+      if (parsed && typeof parsed === 'object') {
+        evaluation = parsed;
+        rawText = parsed.overallAnalysis || parsed.analysis || inputToUse;
+      } else {
+        rawText = inputToUse;
+      }
+    } catch {
+      rawText = inputToUse;
+      evaluation = {};
+    }
+  } else if (typeof inputToUse === 'object' && inputToUse !== null) {
+    evaluation = inputToUse;
+    rawText = inputToUse.overallAnalysis || inputToUse.analysis || JSON.stringify(inputToUse);
+  }
 
-  // Curriculum & keyword alignment percentage
-  const curr = criteria.curriculumAlignment;
-  const keywordMatch = curr && curr.alignmentPercentage != null
-    ? curr.alignmentPercentage
-    : curr && curr.maxScore > 0
-    ? Math.round((curr.score / curr.maxScore) * 100)
-    : 85;
+  // Normalize newline escapes if any
+  rawText = rawText.replace(/\\n/g, '\n');
 
-  // ATS Compatibility percentage
-  const consistency = criteria.technicalConsistency;
-  const completeness = criteria.resumeCompleteness;
-  const consistencyPct = consistency && consistency.maxScore > 0 ? (consistency.score / consistency.maxScore) * 100 : 70;
-  const completenessPct = completeness && completeness.maxScore > 0 ? (completeness.score / completeness.maxScore) * 100 : 80;
-  const atsMatch = Math.round((consistencyPct + completenessPct + (evaluation.totalScore || 80)) / 3);
+  // Parse overall score
+  let totalScore = 0;
+  const scoreMatch = rawText.match(/Overall Resume Score:\s*(\d+)\s*\/\s*100/i);
+  if (scoreMatch) {
+    totalScore = parseInt(scoreMatch[1], 10);
+  } else if (evaluation.totalScore != null) {
+    totalScore = evaluation.totalScore;
+  } else if (typeof evaluation.overallAnalysis === 'number') {
+    totalScore = evaluation.overallAnalysis;
+  } else {
+    totalScore = 82; // Fallback score if score label is absent
+  }
+
+  // Parse 4 stat percentages
+  const atsMatch = parseInt((rawText.match(/ATS Compatibility:\s*(\d+)%/i) || [])[1] || evaluation.atsCompatibility || 85, 10);
+  const skillsMatch = parseInt((rawText.match(/Skills Match:\s*(\d+)%/i) || [])[1] || evaluation.skillsMatch || 80, 10);
+  const experienceMatch = parseInt((rawText.match(/Experience Match:\s*(\d+)%/i) || [])[1] || evaluation.experienceMatch || 80, 10);
+  const keywordMatch = parseInt((rawText.match(/Keyword Match:\s*(\d+)%/i) || [])[1] || evaluation.keywordMatch || 88, 10);
+
+  // Known headers list for parsing text sections
+  const KNOWN_HEADERS = [
+    'Matched Skills',
+    'Recommended Skills',
+    'Strengths',
+    'Areas of Improvement',
+    'AI Recommendations',
+  ];
+
+  const parseList = (sectionHeader) => {
+    const headerRegex = new RegExp(`${sectionHeader}:`, 'i');
+    const match = rawText.match(headerRegex);
+    if (!match) return [];
+
+    const headerIndex = match.index;
+    const afterHeader = rawText.slice(headerIndex + match[0].length);
+
+    let nextHeaderIndex = afterHeader.length;
+    for (const h of KNOWN_HEADERS) {
+      if (h.toLowerCase() !== sectionHeader.toLowerCase()) {
+        const idx = afterHeader.search(new RegExp(`\\n\\s*${h}:`, 'i'));
+        if (idx !== -1 && idx < nextHeaderIndex) {
+          nextHeaderIndex = idx;
+        }
+      }
+    }
+
+    const sectionContent = afterHeader.slice(0, nextHeaderIndex);
+
+    return sectionContent
+      .split('\n')
+      .map((line) => line.replace(/^[-*\d.]+\s*/, '').trim())
+      .filter((line) => line.length > 0 && !line.startsWith('=') && !line.includes(':'));
+  };
+
+  const matchedSkills = parseList('Matched Skills');
+  const missingSkills = parseList('Recommended Skills');
+  const strengths = parseList('Strengths');
+  const weakAreas = parseList('Areas of Improvement');
+  const aiRecommendations = parseList('AI Recommendations');
+
+  const finalMatchedSkills = matchedSkills.length > 0 ? matchedSkills : (evaluation.matchedSkills || []);
+  const finalMissingSkills = missingSkills.length > 0 ? missingSkills : (evaluation.recommendedSkills || evaluation.missingSkills || []);
+
+  // Determine if candidate meets criteria to proceed to technical interview
+  const isPass =
+    totalScore >= 70 ||
+    skillsMatch >= 70 ||
+    atsMatch >= 70 ||
+    finalMatchedSkills.length >= 1 ||
+    evaluation.status === 'OK';
 
   return {
-    totalScore: evaluation.totalScore ?? 80,
-    status: evaluation.status || (evaluation.totalScore >= 80 ? 'PASS' : 'NEEDS_IMPROVEMENT'),
-    isPass:
-      evaluation.status === 'PASS' ||
-      evaluation.interviewEligible === true ||
-      evaluation.recommendation?.decision === 'PROCEED_TO_INTERVIEW' ||
-      (evaluation.totalScore != null && evaluation.totalScore >= 80),
+    rawText,
+    totalScore,
+    status: isPass ? 'PASS' : 'NEEDS_IMPROVEMENT',
+    isPass,
     atsMatch,
     skillsMatch,
     experienceMatch,
     keywordMatch,
-    matchedSkills: techSkill?.matchedSkills || [],
-    missingSkills: techSkill?.missingSkills || [],
-    strengths: evaluation.strengths || [],
-    weakAreas: evaluation.weakAreas || [],
-    decision: evaluation.recommendation?.decision,
-    reason: evaluation.recommendation?.reason,
+    matchedSkills: finalMatchedSkills,
+    missingSkills: finalMissingSkills,
+    strengths: strengths.length > 0 ? strengths : (evaluation.strengths || []),
+    weakAreas: weakAreas.length > 0 ? weakAreas : (evaluation.areasOfImprovement || evaluation.weakAreas || []),
+    aiRecommendations: aiRecommendations.length > 0 ? aiRecommendations : (evaluation.aiRecommendations || []),
   };
 };

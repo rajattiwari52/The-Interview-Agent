@@ -2,33 +2,15 @@ import api from './api';
 
 export const resumeService = {
   /**
-   * Upload resume file to backend API
+   * POST /resume/analyze
+   * Upload resume PDF/DOCX file (formData key: "resume")
+   * Backend returns raw text analysis string or JSON object
    */
-  uploadResume: async (file) => {
+  analyzeResume: async (fileObj) => {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('resume', fileObj);
 
-    const response = await api.post('/resume/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
-  },
-
-  /**
-   * Trigger real AI analysis for uploaded resume
-   */
-  analyzeResume: async (resumeId) => {
-    const response = await api.post(`/resume/analyze/${resumeId}`);
-    return response.data;
-  },
-
-  /**
-   * Fetch evaluation analytics results
-   */
-  getEvaluationResults: async (resumeId) => {
-    const response = await api.get(`/resume/results/${resumeId}`);
+    const response = await api.post('/resume/analyze', formData);
     return response.data;
   },
 };
