@@ -52,13 +52,3 @@
 35. **Session Timeout Handler**: "On timer expiration (00:00), automatically terminate the session and render the final report based on questions answered up to that point."
 36. **Question-Based Analytics Engine**: "Calculate dynamic report metrics, overall score, and topic proficiencies based on the exact count of correct, partial, and incorrect candidate responses."
 37. **Detailed Breakdown Toggle**: "Remove the standalone granular question-by-question card list from the main report layout while retaining overall score calculations."
-
----
-
-### 🔹 Module 5: Project Documentation & System Configuration
-38. **Git Commit Formatting**: "Generate conventional Git commit messages summarizing recent proctoring and evaluation enhancements."
-39. **Tech Stack Audit**: "Provide a comprehensive breakdown of all frontend frameworks, libraries, and tools utilized in the project."
-40. **Documentation Formatting**: "Format technical stack documentation into a clean, structured visual layout."
-41. **Code Block Export**: "Output documentation inside a single, copyable Markdown code block."
-42. **Prompt History Logging**: "Extract and compile all user prompt logs across frontend development phases into a structured Markdown document."
-43. **Prompt Localization**: "Translate all prompt logs into technical English."
