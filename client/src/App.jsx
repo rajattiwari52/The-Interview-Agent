@@ -5,11 +5,13 @@ import { ThemeProvider } from './context/ThemeContext';
 
 const App = () => {
   return (
+    //Hello
     <ThemeProvider>
       <BrowserRouter>
         <AppRoutes />
       </BrowserRouter>
     </ThemeProvider>
+
   );
 };
 

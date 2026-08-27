@@ -5,11 +5,11 @@ import interviewService from '../services/interviewService';
 jest.mock('../services/api');
 
 describe('Services API Integration Unit Tests', () => {
-  afterEach(() => {
-    jest.clearAllMocks();
+  beforeEach(() => {
+    jest.resetAllMocks();
   });
 
-  test('resumeService.analyseResume sends FormData to /resume/analyse', async () => {
+  test('resumeService.analyzeResume sends FormData to /resume/analyze', async () => {
     const mockResponse = {
       data: {
         overallAnalysis: 'Overall Resume Score: 80/100',
@@ -19,15 +19,9 @@ describe('Services API Integration Unit Tests', () => {
     api.post.mockResolvedValueOnce(mockResponse);
 
     const mockFile = new File(['dummy content'], 'resume.pdf', { type: 'application/pdf' });
-    const result = await resumeService.analyseResume(mockFile);
+    const result = await resumeService.analyzeResume(mockFile);
 
-    expect(api.post).toHaveBeenCalledWith(
-      '/resume/analyse',
-      expect.any(FormData),
-      expect.objectContaining({
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
-    );
+    expect(api.post).toHaveBeenCalledWith('/resume/analyze', expect.any(FormData));
     expect(result).toEqual(mockResponse.data);
   });
 
@@ -68,6 +62,8 @@ describe('Services API Integration Unit Tests', () => {
     expect(api.post).toHaveBeenCalledWith('/interview/next', {
       sessionId: 'session_123',
       answer: 'My answer',
+      currentCount: 1,
+      phase: 'Introduction',
     });
     expect(result).toEqual(mockNextResponse.data);
   });

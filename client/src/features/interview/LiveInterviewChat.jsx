@@ -20,6 +20,13 @@ const LiveInterviewChat = ({ onSessionUpdate }) => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
+  // Persist chat history for question-by-question report evaluation
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem('interviewChatHistory', JSON.stringify(messages));
+    }
+  }, [messages]);
+
   // Start Real AI Interview API Session on Mount (POST /interview/start)
   useEffect(() => {
     const resumeAnalysis = localStorage.getItem('resumeAnalysis') || '';

@@ -1,22 +1,151 @@
 /**
- * Utility function to parse raw AI evaluation response text returned by POST /interview/finish
- * into structured metrics, dynamic topic breakdowns, and clean executive summaries.
+ * Utility function to parse raw AI evaluation response text and chat history
+ * into structured Q&A breakdowns, dynamic metrics, topic scores, and executive summaries.
  */
-export const calculateReportAnalytics = (rawReportText = '') => {
+
+export const parseQnAFromChatHistory = (chatHistory = []) => {
+  if (!Array.isArray(chatHistory) || chatHistory.length === 0) {
+    return [];
+  }
+
+  const qna = [];
+  let lastQuestionText = 'Introduction & Background';
+
+  for (let i = 0; i < chatHistory.length; i++) {
+    const msg = chatHistory[i];
+
+    if (msg.sender === 'ai') {
+      const qText = msg.questionText || msg.text;
+      if (qText) {
+        lastQuestionText = qText;
+      }
+    } else if (msg.sender === 'user') {
+      const candidateAnswer = msg.text || '';
+      const nextAiMsg = chatHistory[i + 1];
+      const evaluation = nextAiMsg?.evalText || nextAiMsg?.text || 'Evaluated during technical interview session.';
+
+      let status = 'needs_improvement';
+      const evalLower = evaluation.toLowerCase();
+      const answerLower = candidateAnswer.toLowerCase();
+
+      if (
+        evalLower.includes('correct') ||
+        evalLower.includes('accurate') ||
+        evalLower.includes('good answer') ||
+        evalLower.includes('strong understanding') ||
+        evalLower.includes('well explained')
+      ) {
+        status = 'correct';
+      } else if (
+        evalLower.includes('incorrect') ||
+        evalLower.includes('wrong') ||
+        evalLower.includes('fails to') ||
+        evalLower.includes('lack of') ||
+        evalLower.includes('no effort') ||
+        answerLower.length < 5
+      ) {
+        status = 'incorrect';
+      } else {
+        status = 'needs_improvement';
+      }
+
+      qna.push({
+        id: qna.length + 1,
+        questionNum: qna.length + 1,
+        question: lastQuestionText,
+        candidateAnswer: candidateAnswer,
+        evaluation: evaluation,
+        status: status,
+      });
+    }
+  }
+
+  return qna;
+};
+
+// Fallback Q&A list if user opens report directly without chat history
+const DEFAULT_QNA_LIST = [
+  {
+    id: 1,
+    questionNum: 1,
+    question: 'To begin, please introduce yourself—give a brief overview of your technical background, core skills, and key projects.',
+    candidateAnswer: 'I am a Software Engineer with experience in React, Node.js, Java Spring Boot, and PostgreSQL. Built scalable microservices and real-time chat platforms.',
+    evaluation: '✅ **Strong Introduction**: Candidate clearly articulated technical stack and relevant backend architecture experience.',
+    status: 'correct',
+  },
+  {
+    id: 2,
+    questionNum: 2,
+    question: 'Can you explain Dependency Injection in Spring Boot and why constructor injection is preferred over `@Autowired` on fields?',
+    candidateAnswer: 'Dependency Injection lets Spring container manage object creation. Constructor injection is better because it allows immutability (final fields) and makes unit testing easier.',
+    evaluation: '✅ **Correct & Precise**: Great answer highlighting immutability and testability benefits of constructor injection.',
+    status: 'correct',
+  },
+  {
+    id: 3,
+    questionNum: 3,
+    question: 'How do you prevent N+1 query problems in JPA / Hibernate when fetching entity relationships?',
+    candidateAnswer: 'We can use `@EntityGraph` or `JOIN FETCH` in JPQL to eagerly fetch related entities in a single SQL query instead of N separate queries.',
+    evaluation: '✅ **Correct**: Demonstrates clear understanding of database query optimization and JPA fetch strategies.',
+    status: 'correct',
+  },
+  {
+    id: 4,
+    questionNum: 4,
+    question: 'How does Redis cache eviction work with LRU vs LFU policies under high memory pressure?',
+    candidateAnswer: 'LRU removes least recently used keys, while LFU removes keys used least frequently. Redis drops keys when maxmemory limit is reached.',
+    evaluation: '⚠️ **Needs Improvement**: Basic distinction is correct, but candidate missed mentioning how frequency counters work in LFU vs timestamps in LRU and volatile-lru configuration settings.',
+    status: 'needs_improvement',
+  },
+  {
+    id: 5,
+    questionNum: 5,
+    question: 'Can you explain how Java Garbage Collection handles Memory Leaks caused by Static collection references?',
+    candidateAnswer: 'Static variables are collected automatically when the method finishes running.',
+    evaluation: '❌ **Incorrect**: Static references stay in GC Root memory for the entire JVM process lifetime, so referenced objects will NOT be garbage collected unless explicitly removed or cleared.',
+    status: 'incorrect',
+  },
+];
+
+export const calculateReportAnalytics = (rawReportText = '', rawChatHistory = null) => {
   const text = typeof rawReportText === 'string'
     ? rawReportText
     : (rawReportText?.overallEvaluation || rawReportText?.summary || JSON.stringify(rawReportText || ''));
 
-  // 1. Parse Score
-  let score = 82;
+  // 1. Parse Q&A List
+  let chatHistory = rawChatHistory;
+  if (!chatHistory) {
+    try {
+      const savedHistory = localStorage.getItem('interviewChatHistory');
+      if (savedHistory) {
+        chatHistory = JSON.parse(savedHistory);
+      }
+    } catch {
+      chatHistory = null;
+    }
+  }
+
+  let qnaList = parseQnAFromChatHistory(chatHistory);
+  if (qnaList.length === 0) {
+    qnaList = DEFAULT_QNA_LIST;
+  }
+
+  // 2. Compute dynamic stats from Q&A list
+  const totalQuestions = qnaList.length;
+  const correctCount = qnaList.filter((item) => item.status === 'correct').length;
+  const partialCount = qnaList.filter((item) => item.status === 'needs_improvement').length;
+  const incorrectCount = qnaList.filter((item) => item.status === 'incorrect').length;
+
+  // 3. Dynamic Score Calculation based on answer correctness
+  let score = Math.round(((correctCount * 100) + (partialCount * 60) + (incorrectCount * 20)) / Math.max(1, totalQuestions));
+
+  // Override with explicit score match if text explicitly contains Overall Score
   const scoreMatch = text.match(/(?:Overall Score|Score|Rating):\s*(\d+)(?:\s*\/\s*100)?/i);
   if (scoreMatch) {
     score = Math.min(100, Math.max(0, parseInt(scoreMatch[1], 10)));
-  } else if (rawReportText && typeof rawReportText === 'object' && rawReportText.score) {
-    score = Number(rawReportText.score);
   }
 
-  // 2. Performance Label
+  // 4. Performance Label & Badge
   let performanceLabel = 'Strong Performance';
   let badgeType = 'emerald';
   if (score >= 80) {
@@ -33,40 +162,23 @@ export const calculateReportAnalytics = (rawReportText = '') => {
     badgeType = 'amber';
   }
 
-  // 3. Clean Executive Summary Quote
+  // 5. Clean Executive Summary Quote
   let summaryQuote = '';
-  
-  // Try extracting Final Feedback section
   const feedbackMatch = text.match(/Final Feedback:\s*([\s\S]*?)(?=\n\n|\n[A-Z]|$)/i);
   const recommendationMatch = text.match(/Recommendation:\s*([\s\S]*?)(?=\n\n|\n[A-Z]|$)/i);
-  const weakSkillsMatch = text.match(/Weak Skills:\s*([\s\S]*?)(?=\n\n|\n[A-Z]|$)/i);
 
   if (feedbackMatch && feedbackMatch[1]?.trim().length > 20) {
     summaryQuote = feedbackMatch[1].trim().replace(/\s+/g, ' ');
   } else if (recommendationMatch && recommendationMatch[1]?.trim().length > 20) {
     summaryQuote = recommendationMatch[1].trim().replace(/\s+/g, ' ');
-  } else if (text.length > 30) {
-    // Clean inline markdown noise
-    summaryQuote = text
-      .replace(/Overall Score:\s*\d+\/100/gi, '')
-      .replace(/\*\*/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-    if (summaryQuote.length > 280) {
-      summaryQuote = summaryQuote.substring(0, 280) + '...';
-    }
   } else {
-    summaryQuote = 'Candidate demonstrated adaptive technical understanding during the live interview session.';
+    summaryQuote = `Candidate answered ${totalQuestions} questions: ${correctCount} correct, ${partialCount} partial, and ${incorrectCount} incorrect. Overall evaluation indicates ${performanceLabel.toLowerCase()}.`;
   }
 
-  // 4. Dynamic Metrics Row
-  // If score is low (e.g. 40), scale metrics proportionally to candidate's actual score!
-  const isPoorComm = /Communication:\s*-\s*(?:Poor|Low|Weak)/i.test(text);
-  const isLowConf = /Confidence:\s*-\s*(?:Low|Weak|Poor)/i.test(text);
-
-  const techValue = Math.min(98, Math.max(25, Math.round(score * 1.05)));
-  const probValue = Math.min(95, Math.max(20, Math.round(score * 0.98)));
-  const commValue = isPoorComm ? Math.min(45, Math.round(score * 0.8)) : Math.min(95, Math.max(30, Math.round(score * 0.92)));
+  // 6. Dynamic Metrics Row
+  const techValue = Math.min(98, Math.max(25, Math.round(score * 1.04)));
+  const probValue = Math.min(95, Math.max(20, Math.round(score * 0.96)));
+  const commValue = Math.min(95, Math.max(30, Math.round((correctCount / totalQuestions) * 90 + 10)));
   const topicValue = Math.min(96, Math.max(25, Math.round(score * 1.02)));
 
   const metrics = [
@@ -76,103 +188,27 @@ export const calculateReportAnalytics = (rawReportText = '') => {
     { name: 'Topic Understanding', value: topicValue },
   ];
 
-  // 5. Dynamic Topic Performance Breakdown
-  // Extract verified vs weak skills or fallback to relevant backend technology topics
-  const verifiedMatch = text.match(/Verified Skills:\s*([\s\S]*?)(?=Weak Skills:|Recommendation:|$)/i);
-  const weakMatch = text.match(/Weak Skills:\s*([\s\S]*?)(?=Recommendation:|Final Feedback:|$)/i);
-
-  const topics = [];
-
-  if (weakMatch && weakMatch[1]?.trim().length > 10) {
-    const weakList = weakMatch[1]
-      .split('\n')
-      .map(s => s.replace(/^[-*•]\s*/, '').trim())
-      .filter(s => s.length > 5);
-
-    weakList.slice(0, 3).forEach((item, idx) => {
-      topics.push({
-        title: item.length > 40 ? item.substring(0, 40) + '...' : item,
-        score: `${Math.max(25, score - 10 + idx * 5)}%`,
-        status: 'Needs Practice',
-        positive: item,
-      });
-    });
-  }
-
-  if (verifiedMatch && verifiedMatch[1]?.trim().length > 10) {
-    const verifiedList = verifiedMatch[1]
-      .split('\n')
-      .map(s => s.replace(/^[-*•]\s*/, '').trim())
-      .filter(s => s.length > 5 && !s.toLowerCase().includes('none') && !s.toLowerCase().includes('not verified'));
-
-    verifiedList.slice(0, 2).forEach((item, idx) => {
-      topics.push({
-        title: item.length > 40 ? item.substring(0, 40) + '...' : item,
-        score: `${Math.min(95, score + 15 + idx * 5)}%`,
-        status: 'Proficient',
-        positive: item,
-      });
-    });
-  }
-
-  // If no topics parsed from text, provide accurate fallback topics matching score level
-  if (topics.length === 0) {
-    if (score < 50) {
-      topics.push(
-        {
-          title: 'Spring Boot & Core Frameworks',
-          score: `${techValue}%`,
-          status: 'Needs Practice',
-          positive: 'Basic concepts demonstrated, but answers lacked technical depth and configuration detail.',
-        },
-        {
-          title: 'Data Structures & Algorithms',
-          score: `${probValue}%`,
-          status: 'Needs Practice',
-          positive: 'Fundamental problem solving was partial; requires further hands-on implementation practice.',
-        },
-        {
-          title: 'Technical Communication & Clarity',
-          score: `${commValue}%`,
-          status: 'Needs Practice',
-          positive: 'Explanations were brief; candidate should practice structured technical communication.',
-        },
-        {
-          title: 'System Design & Architecture',
-          score: `${topicValue}%`,
-          status: 'Needs Practice',
-          positive: 'Requires deeper familiarity with caching strategies and database transactions.',
-        }
-      );
-    } else {
-      topics.push(
-        {
-          title: 'Spring Boot & Microservices',
-          score: `${techValue}%`,
-          status: 'Strong',
-          positive: 'Demonstrated solid grasp of dependency injection and application architecture.',
-        },
-        {
-          title: 'Data Persistence & Databases',
-          score: `${topicValue}%`,
-          status: 'Proficient',
-          positive: 'Clear understanding of relational queries and cache eviction policies.',
-        },
-        {
-          title: 'System Design & Scalability',
-          score: `${probValue}%`,
-          status: 'Proficient',
-          positive: 'Solid approach to load distribution and API interface design.',
-        },
-        {
-          title: 'Technical Communication',
-          score: `${commValue}%`,
-          status: 'Good',
-          positive: 'Articulated technical choices clearly with structured explanations.',
-        }
-      );
-    }
-  }
+  // 7. Dynamic Topics Breakdown
+  const topics = [
+    {
+      title: 'Core Fundamentals & Syntax',
+      score: `${techValue}%`,
+      status: techValue >= 70 ? 'Strong' : 'Needs Practice',
+      positive: `Candidate correctly answered ${correctCount} core technical questions.`,
+    },
+    {
+      title: 'Technical Communication & Clarity',
+      score: `${commValue}%`,
+      status: commValue >= 70 ? 'Proficient' : 'Needs Practice',
+      positive: 'Clear technical descriptions provided during live interview questions.',
+    },
+    {
+      title: 'System Architecture & Advanced Concepts',
+      score: `${topicValue}%`,
+      status: topicValue >= 70 ? 'Proficient' : 'Needs Practice',
+      positive: incorrectCount > 0 ? `${incorrectCount} question(s) need deeper study on advanced edge cases.` : 'Strong grasp of system design patterns.',
+    },
+  ];
 
   return {
     score,
@@ -181,5 +217,12 @@ export const calculateReportAnalytics = (rawReportText = '') => {
     summaryQuote,
     metrics,
     topics,
+    qnaList,
+    totalQuestions,
+    correctCount,
+    partialCount,
+    incorrectCount,
   };
 };
+
+export default calculateReportAnalytics;
