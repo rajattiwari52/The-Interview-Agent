@@ -4,8 +4,11 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '\\.(css|less|scss|sass)$': '<rootDir>/src/__mocks__/styleMock.js',
+    '(\\.{1,2}/)+services/api$': '<rootDir>/src/__mocks__/api.js',
+    '\\./api$': '<rootDir>/src/__mocks__/api.js',
   },
   transform: {
     '^.+\\.(js|jsx)$': 'babel-jest',
   },
 };
+

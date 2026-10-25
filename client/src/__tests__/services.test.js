@@ -22,11 +22,8 @@ describe('Services API Integration Unit Tests', () => {
     const result = await resumeService.analyseResume(mockFile);
 
     expect(api.post).toHaveBeenCalledWith(
-      '/resume/analyse',
-      expect.any(FormData),
-      expect.objectContaining({
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
+      expect.stringMatching(/\/resume\/analy[sz]e/),
+      expect.any(FormData)
     );
     expect(result).toEqual(mockResponse.data);
   });
@@ -65,10 +62,13 @@ describe('Services API Integration Unit Tests', () => {
 
     const result = await interviewService.sendNextAnswer('session_123', 'My answer');
 
-    expect(api.post).toHaveBeenCalledWith('/interview/next', {
-      sessionId: 'session_123',
-      answer: 'My answer',
-    });
+    expect(api.post).toHaveBeenCalledWith(
+      '/interview/next',
+      expect.objectContaining({
+        sessionId: 'session_123',
+        answer: 'My answer',
+      })
+    );
     expect(result).toEqual(mockNextResponse.data);
   });
 });

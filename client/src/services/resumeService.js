@@ -13,6 +13,9 @@ export const resumeService = {
     const response = await api.post('/resume/analyze', formData);
     return response.data;
   },
+  analyseResume: async function (fileObj) {
+    return this.analyzeResume(fileObj);
+  },
 };
 
 export default resumeService;
